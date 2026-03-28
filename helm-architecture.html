@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The HELM Framework — Architecture Diagram | Wired Differently</title>
+<meta name="description" content="The full HELM Framework system architecture — three layers, real tools, and the human command structure that connects them. By Jason Wright, Wired Differently.">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a18;
+    --ink-mid: #3d3d3a;
+    --ink-light: #6b6b66;
+    --ink-faint: #a0a09a;
+    --paper: #faf9f6;
+    --rule: #e2e0d8;
+    --accent: #c8471a;
+    --surface: #f1efe8;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-ui: 'DM Sans', system-ui, sans-serif;
+  }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: var(--ink);
+    padding: 0 24px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar-pub {
+    font-family: var(--font-display);
+    font-size: 15px;
+    color: var(--paper);
+    letter-spacing: -.01em;
+  }
+  .topbar-pub span { color: var(--accent); }
+  .topbar-link {
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    font-weight: 400;
+    transition: color .15s;
+  }
+  .topbar-link:hover { color: var(--paper); }
+
+  /* ── Hero header ── */
+  .hero {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .hero-tag {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    margin-bottom: 16px;
+  }
+  .hero-intro {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink-mid);
+    max-width: 680px;
+    margin-bottom: 20px;
+  }
+  .hero-meta {
+    font-size: 13px;
+    color: var(--ink-faint);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .hero-meta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .hero-meta a:hover { text-decoration: underline; }
+
+  /* ── Diagram container ── */
+  .diagram-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .click-hint {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+    font-style: italic;
+  }
+
+  /* ── Constraint banner ── */
+  .constraint-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 14px;
+    gap: 0;
+  }
+  .row-label {
+    width: 88px;
+    min-width: 88px;
+    padding-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: right;
+    line-height: 1.4;
+  }
+  .constraint-box {
+    flex: 1;
+    border: 1.5px dashed #1D9E75;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: rgba(29,158,117,.05);
+  }
+  .constraint-note {
+    font-size: 11px;
+    color: #0F6E56;
+    font-style: italic;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ── Flow rows ── */
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 2px;
+  }
+  .flow-box {
+    flex: 1;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 0.5px solid #e2e0d8;
+    background: #f8f7f4;
+  }
+  .flow-box.inputs  { border-left: 3px solid #b4b2a9; }
+  .flow-box.datalyr { border-left: 3px solid #378ADD; background: rgba(55,138,221,.05); }
+  .flow-box.l2      { border-left: 3px solid #7F77DD; background: rgba(127,119,221,.05); }
+  .flow-box.twin    { border-left: 3px solid #D85A30; background: rgba(216,90,48,.05); }
+  .flow-box.l3      { border-left: 3px solid #BA7517; background: rgba(186,117,23,.05); }
+  .flow-box.occ     { border-left: 3px solid #D4537E; background: rgba(212,83,126,.05); }
+  .flow-box.field   { border-left: 3px solid #639922; background: rgba(99,153,34,.05); }
+
+  /* ── Box header ── */
+  .box-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .box-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .badge {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .bd-data   { background: #B5D4F4; color: #042C53; }
+  .bd-l1     { background: #9FE1CB; color: #04342C; }
+  .bd-l2     { background: #CECBF6; color: #26215C; }
+  .bd-twin   { background: #F5C4B3; color: #4A1B0C; }
+  .bd-l3     { background: #FAC775; color: #412402; }
+  .bd-occ    { background: #F4C0D1; color: #4B1528; }
+  .bd-field  { background: #C0DD97; color: #173404; }
+
+  /* ── Chips ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: white;
+    border: 0.5px solid #d3d1c7;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color .15s, transform .1s, box-shadow .1s;
+  }
+  .chip:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(200,71,26,.12);
+  }
+  .chip .cn {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .chip .cd {
+    font-size: 10px;
+    color: var(--ink-light);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  /* ── Arrows ── */
+  .arrow-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 0 6px 100px;
+    gap: 8px;
+  }
+  .arrow-icon {
+    font-size: 16px;
+    color: var(--ink-faint);
+    line-height: 1;
+  }
+  .arrow-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  /* ── Feedback loop ── */
+  .feedback {
+    margin-top: 16px;
+    margin-left: 100px;
+    border: 0.5px dashed #b4b2a9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--ink-light);
+    line-height: 1.6;
+  }
+  .feedback strong { color: var(--ink); }
+
+  /* ── Footer ── */
+  .footer {
+    background: var(--ink);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .footer-pub {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--paper);
+    margin-bottom: 8px;
+  }
+  .footer-pub span { color: var(--accent); }
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    transition: color .15s;
+  }
+  .footer-links a:hover { color: var(--paper); }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 26px; }
+    .row-label { width: 64px; min-width: 64px; font-size: 8px; }
+    .arrow-row { padding-left: 72px; }
+    .feedback { margin-left: 72px; }
+    .chip .cn { font-size: 11px; }
+    .chip .cd { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<nav class="topbar">
+  <div class="topbar-pub">Wired <span>Differently</span></div>
+  <a class="topbar-link" href="https://wired-differently.substack.com" target="_blank">Read the full series →</a>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-tag">The HELM Framework &nbsp;·&nbsp; Interactive Architecture</div>
+  <h1>Human-Enhanced Layered Management</h1>
+  <p class="hero-intro">A three-layer operational command architecture for high-velocity guest environments. Each layer addresses a distinct category of uncertainty. At every level, human operators remain the commanding authority — not passive recipients of algorithmic output, but active decision-makers operating within a system designed to make their judgment faster, sharper, and less costly to exercise. Click any tool to learn more.</p>
+  <div class="hero-meta">
+    <span>By Jason Wright</span>
+    <a href="https://www.linkedin.com/in/econwright" target="_blank">linkedin.com/in/econwright</a>
+    <a href="https://wired-differently.substack.com" target="_blank">Wired Differently</a>
+  </div>
+</header>
+
+<!-- Diagram -->
+<main class="diagram-wrap">
+
+  <p class="click-hint">Click any tool chip to learn more about it.</p>
+
+  <!-- LAYER 1 — CONSTRAINT BANNER -->
+  <div class="constraint-row">
+    <div class="row-label">Layer 1<br>Constraint</div>
+    <div class="constraint-box">
+      <div class="box-header">
+        <span class="box-title">Deterministic baseline — standing constraint on the entire system</span>
+        <span class="badge bd-l1">What do we need, no matter what?</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=Infor+WFM+workforce+management+compliance" target="_blank" rel="noopener">
+          <span class="cn">Infor WFM</span>
+          <span class="cd">Compliance & minimum staffing rules</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=operational+policy+documentation+safety+compliance+framework" target="_blank" rel="noopener">
+          <span class="cn">Validated policy docs</span>
+          <span class="cd">Safety, legal & regulatory floor</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Verint+workforce+compliance+monitoring" target="_blank" rel="noopener">
+          <span class="cn">Verint</span>
+          <span class="cd">Compliance monitoring & audit trail</span>
+        </a>
+      </div>
+      <p class="constraint-note">↕ Layer 1 is not a step in the data flow. It is the floor every other layer must respect — Layer 2 cannot schedule below it, Layer 3 cannot recommend below it, and the OCC cannot approve below it.</p>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">raw operational data flows into a unified source of truth</span>
+  </div>
+
+  <!-- DATA SOURCES -->
+  <div class="flow-row">
+    <div class="row-label">Data<br>sources</div>
+    <div class="flow-box inputs">
+      <div class="box-header">
+        <span class="box-title">Operational inputs</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=Tomorrow.io+weather+intelligence+API+operations" target="_blank" rel="noopener">
+          <span class="cn">Tomorrow.io</span>
+          <span class="cd">Weather intelligence API</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Accesso+theme+park+ticketing+queue+management" target="_blank" rel="noopener">
+          <span class="cn">Accesso</span>
+          <span class="cd">Ticketing & queue data</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=UKG+Kronos+workforce+management+scheduling" target="_blank" rel="noopener">
+          <span class="cn">UKG (Kronos)</span>
+          <span class="cd">Workforce & scheduling data</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=IoT+sensors+cameras+crowd+analytics+venues" target="_blank" rel="noopener">
+          <span class="cn">Cameras & IoT sensors</span>
+          <span class="cd">Raw crowd & facility data</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Salesforce+CRM+guest+experience+hospitality" target="_blank" rel="noopener">
+          <span class="cn">Salesforce</span>
+          <span class="cd">Guest CRM & mobile app data</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Oracle+Simphony+POS+hospitality+theme+park" target="_blank" rel="noopener">
+          <span class="cn">Oracle Simphony</span>
+          <span class="cd">POS & transaction data</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">unified into a single validated source of truth</span>
+  </div>
+
+  <!-- DATA LAYER -->
+  <div class="flow-row">
+    <div class="row-label">Data<br>layer</div>
+    <div class="flow-box datalyr">
+      <div class="box-header">
+        <span class="box-title">Unified data infrastructure</span>
+        <span class="badge bd-data">Phase 2 prerequisite</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=Snowflake+data+warehouse+operational+analytics" target="_blank" rel="noopener">
+          <span class="cn">Snowflake</span>
+          <span class="cd">Operational data warehouse</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Databricks+real+time+data+processing+ML+pipelines" target="_blank" rel="noopener">
+          <span class="cn">Databricks</span>
+          <span class="cd">Real-time processing & ML pipelines</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=dbt+data+build+tool+transformation+modeling" target="_blank" rel="noopener">
+          <span class="cn">dbt</span>
+          <span class="cd">Data transformation & modeling</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">historical data trains the scaling model</span>
+  </div>
+
+  <!-- LAYER 2 -->
+  <div class="flow-row">
+    <div class="row-label">Layer 2</div>
+    <div class="flow-box l2">
+      <div class="box-header">
+        <span class="box-title">Historical scaling model</span>
+        <span class="badge bd-l2">What should we prepare for?</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=Google+Vertex+AI+machine+learning+model+deployment" target="_blank" rel="noopener">
+          <span class="cn">Google Vertex AI</span>
+          <span class="cd">ML training & model deployment</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Meta+Prophet+time+series+forecasting+seasonality" target="_blank" rel="noopener">
+          <span class="cn">Meta Prophet</span>
+          <span class="cd">Time-series demand forecasting</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=DataRobot+AutoML+operations+forecasting" target="_blank" rel="noopener">
+          <span class="cn">DataRobot</span>
+          <span class="cd">AutoML for non-data-science ops teams</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Tableau+forecast+visualization+confidence+intervals" target="_blank" rel="noopener">
+          <span class="cn">Tableau</span>
+          <span class="cd">Forecast visualization & confidence intervals</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">model validated in simulation before governing live decisions</span>
+  </div>
+
+  <!-- DIGITAL TWIN -->
+  <div class="flow-row">
+    <div class="row-label">Digital<br>twin</div>
+    <div class="flow-box twin">
+      <div class="box-header">
+        <span class="box-title">Simulation & validation environment</span>
+        <span class="badge bd-twin">Validate before you deploy</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=NVIDIA+Omniverse+digital+twin+simulation+operations" target="_blank" rel="noopener">
+          <span class="cn">NVIDIA Omniverse</span>
+          <span class="cd">Real-time 3D facility simulation</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Azure+Digital+Twins+physical+infrastructure+modeling" target="_blank" rel="noopener">
+          <span class="cn">Azure Digital Twins</span>
+          <span class="cd">Physical infrastructure modeling</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=digital+twin+change+management+operator+trust+AI+deployment" target="_blank" rel="noopener">
+          <span class="cn">Operator trust layer</span>
+          <span class="cd">Builds confidence before live deployment</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">validated model deployed — narrow AI agents monitor live operations</span>
+  </div>
+
+  <!-- LAYER 3 -->
+  <div class="flow-row">
+    <div class="row-label">Layer 3</div>
+    <div class="flow-box l3">
+      <div class="box-header">
+        <span class="box-title">Real-time AI agents</span>
+        <span class="badge bd-l3">What is the data telling us right now?</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=NVIDIA+Metropolis+vision+AI+crowd+analytics+venues" target="_blank" rel="noopener">
+          <span class="cn">NVIDIA Metropolis</span>
+          <span class="cd">Vision AI — crowd & congestion agents</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Palantir+Foundry+AIP+agent+orchestration+operations" target="_blank" rel="noopener">
+          <span class="cn">Palantir Foundry / AIP</span>
+          <span class="cd">Agent orchestration & ontology layer</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Claude+API+Anthropic+scenario+generation+AI" target="_blank" rel="noopener">
+          <span class="cn">Claude API</span>
+          <span class="cd">Scenario generation & ranked options</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=LangGraph+multi+agent+coordination+AI+workflows" target="_blank" rel="noopener">
+          <span class="cn">LangGraph</span>
+          <span class="cd">Multi-agent coordination</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">ranked scenarios with confidence levels & tradeoffs surface to human command</span>
+  </div>
+
+  <!-- OCC -->
+  <div class="flow-row">
+    <div class="row-label">OCC<br>command</div>
+    <div class="flow-box occ">
+      <div class="box-header">
+        <span class="box-title">Human command layer</span>
+        <span class="badge bd-occ">Operator decides — every time</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=Palantir+AIP+Workshop+Kiosk+mode+command+center" target="_blank" rel="noopener">
+          <span class="cn">Palantir Workshop (Kiosk)</span>
+          <span class="cd">24/7 command console</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Tableau+Pulse+AI+powered+alerts+operations" target="_blank" rel="noopener">
+          <span class="cn">Tableau Pulse</span>
+          <span class="cd">Real-time AI-powered alerts</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=operational+command+center+dashboard+design+guest+experience" target="_blank" rel="noopener">
+          <span class="cn">Custom OCC dashboard</span>
+          <span class="cd">Scenario review & one-click execution</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <span class="arrow-icon">↓</span>
+    <span class="arrow-label">operator decision dispatches coordinated action across all systems — simultaneously, in seconds</span>
+  </div>
+
+  <!-- FIELD EXECUTION -->
+  <div class="flow-row">
+    <div class="row-label">Field<br>execution</div>
+    <div class="flow-box field">
+      <div class="box-header">
+        <span class="box-title">Operational output</span>
+        <span class="badge bd-field">Instant, coordinated action</span>
+      </div>
+      <div class="chips">
+        <a class="chip" href="https://www.google.com/search?q=UKG+automated+staffing+dispatch+workforce+notifications" target="_blank" rel="noopener">
+          <span class="cn">UKG</span>
+          <span class="cd">Automated staffing dispatch</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=Salesforce+Marketing+Cloud+real+time+guest+communications" target="_blank" rel="noopener">
+          <span class="cn">Salesforce Mktg Cloud</span>
+          <span class="cd">Real-time guest influence notifications</span>
+        </a>
+        <a class="chip" href="https://www.google.com/search?q=PagerDuty+real+time+operations+escalation+alerts" target="_blank" rel="noopener">
+          <span class="cn">PagerDuty</span>
+          <span class="cd">Field team escalation alerts</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback loop -->
+  <div class="feedback">
+    ↻ <strong>Continuous learning loop:</strong> Every operator decision is logged — conditions, scenario chosen, outcome — and fed continuously back into Layer 2's model. The system running on day 365 is meaningfully smarter than the one deployed on day one. No competitor can replicate this compounding advantage by purchasing the same tools. The architecture is what creates it.
+  </div>
+
+  <!-- Tool agnostic note -->
+  <div style="margin-top: 24px; margin-left: 100px; font-size: 12px; color: var(--ink-faint); font-style: italic; line-height: 1.6; border-top: 0.5px solid var(--rule); padding-top: 16px;">
+    HELM is tool-agnostic by design. The tools shown are current best-fit examples — an organization running AWS SageMaker instead of Vertex AI, or a different agent framework instead of LangGraph, is building HELM with a different stack, not a different system. What cannot be substituted is the structure: unified data before forecasting, deterministic constraints before AI recommendations, simulation before live deployment, and a human operator in command at every consequential decision point.
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-pub">Wired <span>Differently</span></div>
+  <div class="footer-links">
+    <a href="https://wired-differently.substack.com" target="_blank">Read the full HELM series</a>
+    <a href="https://www.linkedin.com/in/econwright" target="_blank">Jason Wright on LinkedIn</a>
+  </div>
+</footer>
+
+</body>
+</html>
